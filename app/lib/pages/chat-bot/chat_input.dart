@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:app/components/recording.dart';
 import 'package:app/data/chat_instance.dart';
 import 'package:app/data/last_message.dart';
 import 'package:app/service/rag_chat.dart';
@@ -104,6 +105,36 @@ class _ChatInputState extends ConsumerState<ChatInput> {
     }
   }
 
+  Future<void> _sendMessageRecord(String conversationId, String text) async {
+    print(conversationId);
+    print(text);
+    final conversation = {
+      "id": Random().nextInt(1000).toString(),
+      "content": text,
+      "conversation_id":
+          conversationId.isNotEmpty ? conversationId : _newChatInstance["id"],
+      "machine": false,
+      "failed_responding": true,
+      "flagged": true,
+      "created_at": DateTime.now().millisecondsSinceEpoch,
+    };
+
+    widget.addConversation(conversation);
+
+    try {
+      final message = await sendMessage({
+        "conversation_id":
+            conversationId.isNotEmpty ? conversationId : _newChatInstance["id"],
+        "content": conversation["content"],
+      });
+      widget.addConversation(message);
+    } catch (e) {
+      print("Failed to send message: $e");
+    } finally {
+      setState(() => _isSending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatRef = ref.watch(chatInstance);
@@ -120,6 +151,9 @@ class _ChatInputState extends ConsumerState<ChatInput> {
               const EdgeInsets.symmetric(vertical: 10, horizontal: 15.0),
           border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(20.0)),
+          ),
+          prefixIcon: Recording(
+            sendMessageRecord: _sendMessageRecord,
           ),
           suffixIcon: GestureDetector(
             onTap: _isSending
